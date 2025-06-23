@@ -4,6 +4,7 @@
 #include <queue>
 #include <map>
 #include <algorithm>
+#include <chrono> // Add this for timing
 using namespace std;
 
 string matrixToStr(const vector<vector<char>>& board){
@@ -20,6 +21,9 @@ struct State{
     vector<vector<char>> board;
     vector<pair<int, int>> path;
     int cost;
+    bool operator>(const State& other) const{
+        return cost > other.cost;
+    }
 };
 
 pair<char, int> top(const vector<char>& bottle){
@@ -147,7 +151,8 @@ int heuristic(const vector<vector<char>>& board){
     return h;
 }
 
-vector<pair<int, int>> solve(vector<vector<char>> initialBoard, int N){
+// Modified solve to take stateChecked as reference
+vector<pair<int, int>> solve(vector<vector<char>> initialBoard, int N, long long& stateChecked){
     priority_queue<State, vector<State>, greater<State>> openList;
     map<string, int> closedList;
     State startState;
@@ -155,9 +160,11 @@ vector<pair<int, int>> solve(vector<vector<char>> initialBoard, int N){
     startState.cost = heuristic(initialBoard);
     openList.push(startState);
     closedList[matrixToStr(startState.board)] = 0;
+    stateChecked = 0;
     while (!openList.empty()){
         State currentState = openList.top();
         openList.pop();
+        stateChecked++; // Count each state checked
         int currentG = currentState.path.size();
         if(currentG > closedList[matrixToStr(currentState.board)]){
             continue;
@@ -198,7 +205,12 @@ int main() {
             Board[i][j] = s[j];
         }
     }
-    vector<pair<int, int>> solutions = solve(Board, N);
+    long long stateChecked = 0;
+    auto start = chrono::high_resolution_clock::now();
+    vector<pair<int, int>> solutions = solve(Board, N, stateChecked);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> elapsed = end - start;
+
     if(!solutions.empty()){
         cout << "Number of steps: " << solutions.size() << endl;
         cout << "Steps:" << endl;
@@ -208,5 +220,7 @@ int main() {
     } else {
         cout << "No solution found" << endl;
     }
+    cout << "States checked: " << stateChecked << endl;
+    cout << "Time consumed: " << elapsed.count() << " seconds" << endl;
     return 0;
 }
