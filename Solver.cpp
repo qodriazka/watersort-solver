@@ -6,82 +6,79 @@
 #include <algorithm>
 using namespace std;
 
-using Board = vector<vector<char>>;
-
-string boardToString(const Board& board) {
+string matrixToStr(const vector<vector<char>>& board){
     string s = "";
-    for (const auto& bottle : board) {
-        for (char c : bottle) {
+    for(const auto& bottle : board){
+        for(char c : bottle){
             s += c;
         }
     }
     return s;
 }
 
-struct State {
-    Board currentBoard;
+struct State{
+    vector<vector<char>> board;
     vector<pair<int, int>> path;
-    int f_cost;
-    bool operator>(const State& other) const {
-        return f_cost > other.f_cost;
-    }
+    int cost;
 };
 
-pair<char, int> getTop(const vector<char>& bottle) {
-    for (int i = 3; i >= 0; --i) {
-        if (bottle[i] != '.') {
+pair<char, int> top(const vector<char>& bottle){
+    for(int i = 3; i >= 0; i--){
+        if(bottle[i] != '.'){
             return {bottle[i], i};
         }
     }
     return {'\0', -1};
 }
 
-bool isBottleFull(const vector<char>& bottle) {
+bool isFull(const vector<char>& bottle){
     return bottle[3] != '.';
 }
 
-bool isBottleEmpty(const vector<char>& bottle) {
+bool isEmpty(const vector<char>& bottle){
     return bottle[0] == '.';
 }
 
-int countEmptySlots(const vector<char>& bottle) {
+int emptySlots(const vector<char>& bottle){
     int count = 0;
-    for (int i = 3; i >= 0; --i) {
-        if (bottle[i] == '.') {
+    for(int i = 3; i >= 0; i--){
+        if(bottle[i] == '.'){
             count++;
-        } else {
+        }else{
             break;
         }
     }
     return count;
 }
 
-int countTopSameColors(const vector<char>& bottle) {
-    pair<char, int> top = getTop(bottle);
-    if (isBottleEmpty(bottle)) return 0;
+int countTopSameColors(const vector<char>& bottle){
+    pair<char, int> topInfo = top(bottle);
+    if(isEmpty(bottle)){
+        return 0;
+    }
     int count = 0;
-    char color = top.first;
-    for (int i = top.second; i >= 0; --i) {
-        if (bottle[i] == color) {
+    char color = topInfo.first;
+    for(int i = topInfo.second; i >= 0; i--){
+        if(bottle[i] == color){
             count++;
-        } else {
+        }else{
             break;
         }
     }
     return count;
 }
 
-bool isSolved(const Board& board) {
-    for (const auto& bottle : board) {
-        if (isBottleEmpty(bottle)) {
+bool isSolved(const vector<vector<char>>& board){
+    for(const auto& bottle : board){
+        if(isEmpty(bottle)){
             continue;
-        } else {
-            if (!isBottleFull(bottle)) {
+        }else{
+            if(!isFull(bottle)){
                 return false;
             }
             char firstColor = bottle[0];
-            for (int i = 1; i < 4; ++i) {
-                if (bottle[i] != firstColor) {
+            for(int i = 1; i < 4; i++){
+                if(bottle[i] != firstColor){
                     return false;
                 }
             }
@@ -90,20 +87,26 @@ bool isSolved(const Board& board) {
     return true;
 }
 
-vector<pair<int, int>> getPossibleMoves(const Board& currentBoard, int N) {
+vector<pair<int, int>> getPossibleMoves(const vector<vector<char>>& currentBoard, int N){
     vector<pair<int, int>> moves;
-    for (int srcIdx = 0; srcIdx < N; ++srcIdx) {
-        for (int destIdx = 0; destIdx < N; ++destIdx) {
-            if (srcIdx == destIdx) continue;
-            const auto& srcBottle = currentBoard[srcIdx];
-            const auto& destBottle = currentBoard[destIdx];
-            if (isBottleEmpty(srcBottle)) continue;
-            if (isBottleFull(destBottle)) continue;
-            char topSrcColor = getTop(srcBottle).first;
-            char topDestColor = getTop(destBottle).first;
-            if (topDestColor == '\0' || topSrcColor == topDestColor) {
-                if (countEmptySlots(destBottle) > 0) {
-                    moves.push_back({srcIdx, destIdx});
+    for(int src = 0; src < N; src++){
+        for(int dest = 0; dest < N; dest++){
+            if(src == dest){
+                continue;
+            }
+            const auto& source = currentBoard[src];
+            const auto& destination = currentBoard[dest];
+            if(isEmpty(source)){
+                continue;
+            }
+            if(isFull(destination)){
+                continue;
+            }
+            char topSrc = top(source).first;
+            char topDest = top(destination).first;
+            if(topDest == '\0' || topSrc == topDest){
+                if(emptySlots(destination) > 0){
+                    moves.push_back({src, dest});
                 }
             }
         }
@@ -111,70 +114,68 @@ vector<pair<int, int>> getPossibleMoves(const Board& currentBoard, int N) {
     return moves;
 }
 
-Board applyMove(const Board& currentBoard, int srcIdx, int destIdx) {
-    Board newBoard = currentBoard;
-    auto& srcBottle = newBoard[srcIdx];
-    auto& destBottle = newBoard[destIdx];
-    pair<char, int> topSrc = getTop(srcBottle);
+vector<vector<char>> applyMove(const vector<vector<char>>& current, int src, int dest){
+    vector<vector<char>> newBoard = current;
+    auto& source = newBoard[src];
+    auto& destination = newBoard[dest];
+    pair<char, int> topSrc = top(source);
     char topSrcColor = topSrc.first;
     int topSrcIndex = topSrc.second;
-    int sameColorsAtSrcTop = countTopSameColors(srcBottle);
-    int emptySlotsInDest = countEmptySlots(destBottle);
-    int pourAmount = min(sameColorsAtSrcTop, emptySlotsInDest);
-    for (int i = 0; i < pourAmount; ++i) {
-        int destPourIndex = getTop(destBottle).second + 1;
-        destBottle[destPourIndex] = topSrcColor;
-        srcBottle[topSrcIndex - i] = '.';
+    int sameColorsAtSrcTop = countTopSameColors(source);
+    int slots = emptySlots(destination);
+    int pourAmount = min(sameColorsAtSrcTop, slots);
+    for(int i = 0; i < pourAmount; i++){
+        int destPourIndex = top(destination).second + 1;
+        destination[destPourIndex] = topSrcColor;
+        source[topSrcIndex - i] = '.';
     }
     return newBoard;
 }
 
-int heuristic(const Board& board) {
+int heuristic(const vector<vector<char>>& board){
     int h = 0;
-    for (const auto& bottle : board) {
+    for(const auto& bottle : board){
         char prevColor = '\0';
-        for (int i = 0; i < 4; ++i) {
+        for(int i = 0; i < 4; ++i){
             char currentColor = bottle[i];
-            if (currentColor != '.' && prevColor != '\0' && currentColor != prevColor) {
+            if(currentColor != '.' && prevColor != '\0' && currentColor != prevColor){
                 h++;
             }
-            if (currentColor != '.') {
-                prevColor = currentColor;
-            }
+            prevColor = currentColor;
         }
     }
     return h;
 }
 
-vector<pair<int, int>> solve(Board initialBoard, int N) {
+vector<pair<int, int>> solve(vector<vector<char>> initialBoard, int N){
     priority_queue<State, vector<State>, greater<State>> openList;
     map<string, int> closedList;
     State startState;
-    startState.currentBoard = initialBoard;
-    startState.f_cost = heuristic(initialBoard);
+    startState.board = initialBoard;
+    startState.cost = heuristic(initialBoard);
     openList.push(startState);
-    closedList[boardToString(startState.currentBoard)] = 0;
-    while (!openList.empty()) {
+    closedList[matrixToStr(startState.board)] = 0;
+    while (!openList.empty()){
         State currentState = openList.top();
         openList.pop();
         int currentG = currentState.path.size();
-        if (currentG > closedList[boardToString(currentState.currentBoard)]) {
+        if(currentG > closedList[matrixToStr(currentState.board)]){
             continue;
         }
-        if (isSolved(currentState.currentBoard)) {
+        if(isSolved(currentState.board)){
             return currentState.path;
         }
-        vector<pair<int, int>> possibleMoves = getPossibleMoves(currentState.currentBoard, N);
+        vector<pair<int, int>> possibleMoves = getPossibleMoves(currentState.board, N);
         for (const auto& move : possibleMoves) {
-            Board nextBoard = applyMove(currentState.currentBoard, move.first, move.second);
-            string nextBoardString = boardToString(nextBoard);
+            vector<vector<char>> nextBoard = applyMove(currentState.board, move.first, move.second);
+            string nextBoardString = matrixToStr(nextBoard);
             int nextG = currentG + 1;
-            if (closedList.find(nextBoardString) == closedList.end() || nextG < closedList[nextBoardString]) {
+            if(closedList.find(nextBoardString) == closedList.end() || nextG < closedList[nextBoardString]){
                 State nextState;
-                nextState.currentBoard = nextBoard;
+                nextState.board = nextBoard;
                 nextState.path = currentState.path;
                 nextState.path.push_back(move);
-                nextState.f_cost = nextG + heuristic(nextBoard);
+                nextState.cost = nextG + heuristic(nextBoard);
                 openList.push(nextState);
                 closedList[nextBoardString] = nextG;
             }
@@ -187,22 +188,22 @@ int main() {
     int N;
     cout << "Enter the number of bottles (N): ";
     cin >> N;
-    Board initialBoard(N, vector<char>(4, '.')); 
+    vector<vector<char>> Board(N, vector<char>(4, '.')); 
     cout << "Enter bottle configurations (example: 'AABB', 'CC..', '....'):" << endl;
     for (int i = 0; i < N; ++i) {
         string s;
         cout << "Bottle " << (i + 1) << ": ";
         cin >> s;
-        for (int j = 0; j < 4; ++j) {
-            initialBoard[i][j] = s[j];
+        for(int j = 0; j < 4; ++j){
+            Board[i][j] = s[j];
         }
     }
-    vector<pair<int, int>> solutions = solve(initialBoard, N);
-    if (!solutions.empty()) {
+    vector<pair<int, int>> solutions = solve(Board, N);
+    if(!solutions.empty()){
         cout << "Number of steps: " << solutions.size() << endl;
         cout << "Steps:" << endl;
-        for (const auto& move : solutions) {
-            cout << "Move from bottle " << (move.first + 1) << " to bottle " << (move.second + 1) << endl;
+        for(const auto& move : solutions){
+            cout << "Move water from bottle " << (move.first + 1) << " to bottle " << (move.second + 1) << endl;
         }
     } else {
         cout << "No solution found" << endl;
