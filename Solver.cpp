@@ -7,16 +7,6 @@
 #include <chrono>
 using namespace std;
 
-string matrixToStr(const vector<vector<char>>& board){
-    string s = "";
-    for(const auto& bottle : board){
-        for(char c : bottle){
-            s += c;
-        }
-    }
-    return s;
-}
-
 struct State{
     vector<vector<char>> board;
     vector<pair<int, int>> path;
@@ -151,7 +141,16 @@ int heuristic(const vector<vector<char>>& board){
     return h;
 }
 
-// Modified solve to take stateChecked as reference
+string matrixToStr(const vector<vector<char>>& board){
+    string s = "";
+    for(const auto& bottle : board){
+        for(char c : bottle){
+            s += c;
+        }
+    }
+    return s;
+}
+
 vector<pair<int, int>> solve(vector<vector<char>> initialBoard, int N, long long& stateChecked){
     priority_queue<State, vector<State>, greater<State>> openList;
     map<string, int> closedList;
